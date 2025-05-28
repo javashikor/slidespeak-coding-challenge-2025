@@ -12,18 +12,20 @@ from app.models import (
     ConversionJobMessage,
     ConversionJobStage,
     ConversionJobStatus,
-    Settings,
 )
+from app.utils.config import get_settings
 from app.utils.convert import convert_with_unoserver
 from app.utils.s3 import upload_to_s3
 
-settings = Settings()
 app = FastAPI(title="PPTX to PDF Conversion API", version="1.0.0")
+
+# Get application environment settings
+settings = get_settings()
 
 # Add CORS middleware for Next.js frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[settings.FRONTEND_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -165,4 +167,8 @@ async def convert_pptx_to_pdf(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
     finally:
-        pass
+        # Clean up temporary files
+        if os.path.exists(input_path):
+            os.remove(input_path)
+        if os.path.exists(output_path):
+            os.remove(output_path)

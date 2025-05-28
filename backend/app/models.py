@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     AWS_S3_BUCKET: str
     AWS_REGION: str = "eu-west-2"
     UNOSERVER_URL: str = "http://localhost:2004"
+    FRONTEND_URL: str = "http://localhost:3000"
 
     model_config = SettingsConfigDict(env_file="../../.env")
 
