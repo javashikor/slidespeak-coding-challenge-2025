@@ -1,9 +1,7 @@
 import aiofiles
 import httpx
 
-from app.utils.config import get_settings
-
-UNOSERVER_URL = get_settings().UNOSERVER_URL
+from app.utils.config import UNOSERVER_URL
 
 
 async def convert_with_unoserver(input_path: str, output_path: str) -> bool:

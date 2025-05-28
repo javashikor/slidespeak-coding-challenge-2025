@@ -2,10 +2,6 @@ import os
 import uuid
 
 import aiofiles
-from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-
 from app.models import (
     ConversionJob,
     ConversionJobList,
@@ -13,19 +9,20 @@ from app.models import (
     ConversionJobStage,
     ConversionJobStatus,
 )
-from app.utils.config import get_settings
+from app.utils.config import AWS_ACCESS_KEY_ID, FRONTEND_URL, UNOSERVER_URL
 from app.utils.convert import convert_with_unoserver
 from app.utils.s3 import upload_to_s3
+from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 app = FastAPI(title="PPTX to PDF Conversion API", version="1.0.0")
 
-# Get application environment settings
-settings = get_settings()
 
 # Add CORS middleware for Next.js frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL],
+    allow_origins=[FRONTEND_URL, UNOSERVER_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -74,6 +71,11 @@ async def convert_pptx_to_pdf(file: UploadFile = File(...)):
     s3_key = f"converted-pdfs/{output_filename}"
 
     print(f"Input path: {input_path}, Output path: {output_path}, S3 key: {s3_key}")
+
+    print(f"AWS Access Key: {AWS_ACCESS_KEY_ID}")
+    print(f"UNOSERVER URL: {UNOSERVER_URL}")
+    print(f"Frontend URL: {FRONTEND_URL}")
+    
 
     try:
         # Step 1: Save uploaded file to a temporary location
@@ -172,6 +174,7 @@ async def convert_pptx_to_pdf(file: UploadFile = File(...)):
             os.remove(input_path)
         if os.path.exists(output_path):
             os.remove(output_path)
+        
 
 
 @app.get("/status/{job_id}")

@@ -1,19 +1,20 @@
+import os
 from enum import StrEnum
 from typing import Optional
 
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# class Settings(BaseSettings):
+#     AWS_ACCESS_KEY_ID: str
+#     AWS_SECRET_ACCESS_KEY: str
+#     AWS_S3_BUCKET: str
+#     AWS_REGION: str
+#     UNOSERVER_URL: str
+#     FRONTEND_URL: str
+#     BACKEND_URL: str
 
-class Settings(BaseSettings):
-    AWS_ACCESS_KEY_ID: str
-    AWS_SECRET_ACCESS_KEY: str
-    AWS_S3_BUCKET: str
-    AWS_REGION: str = "eu-west-2"
-    UNOSERVER_URL: str = "http://localhost:2004"
-    FRONTEND_URL: str = "http://localhost:3000"
-
-    model_config = SettingsConfigDict(env_file="../../.env")
+#     model_config = SettingsConfigDict(env_file="../.env")
 
 
 class ConversionJobMessage(StrEnum):

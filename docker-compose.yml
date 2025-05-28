@@ -1,0 +1,30 @@
+version: "3"
+
+services:
+  unoserver:
+    image: libreofficedocker/libreoffice-unoserver:3.19-9c28c22
+    container_name: unoserver
+    ports:
+      - "2004:2004"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    env_file: ./frontend/.env
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend
+    env_file: ./backend/.env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - unoserver
