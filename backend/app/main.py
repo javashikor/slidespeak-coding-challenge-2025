@@ -172,3 +172,15 @@ async def convert_pptx_to_pdf(file: UploadFile = File(...)):
             os.remove(input_path)
         if os.path.exists(output_path):
             os.remove(output_path)
+
+
+@app.get("/status/{job_id}")
+async def get_conversion_status(job_id: str):
+    """Get the current status of a conversion job"""
+    if job_id in conversion_jobs:
+        return conversion_jobs[job_id]
+    else:
+        return {
+            "status": ConversionJobStatus.ERROR,
+            "message": ConversionJobMessage.JOB_NOT_FOUND,
+        }

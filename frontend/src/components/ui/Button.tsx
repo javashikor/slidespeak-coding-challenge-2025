@@ -14,6 +14,7 @@ export const Button = ({
   onClick,
   disabled = false,
   className = "",
+  
 }: ButtonProps) => {
   const baseClasses = "px-6 py-3 rounded-lg font-medium transition-colors";
   const variants = {

@@ -1,13 +1,28 @@
 "use client";
 
 import UploadIcon from "@/icons/UploadIcon";
-import { FC } from "react";
 import { useDropzone } from "react-dropzone";
 
-type ChooseFileStepProps = {};
+export interface ChooseFileStepProps {
+  onFileSelect: (file: File) => void;
+  error?: string | null;
+  disabled?: boolean;
+}
 
-export const ChooseFileStep: FC<ChooseFileStepProps> = () => {
-  const { getRootProps, getInputProps } = useDropzone({});
+export const ChooseFileStep = ({
+  onFileSelect,
+  error = null,
+  disabled = false,
+}: ChooseFileStepProps) => {
+  const { getRootProps, getInputProps } = useDropzone({
+    onDrop: (acceptedFiles) => {
+      if (acceptedFiles.length > 0 && !disabled) {
+        onFileSelect(acceptedFiles[0]);
+      }
+    },
+    multiple: false,
+    disabled,
+  });
 
   return (
     <div
@@ -30,6 +45,7 @@ export const ChooseFileStep: FC<ChooseFileStepProps> = () => {
         >
           Choose file
         </button>
+        {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
       </div>
     </div>
   );

@@ -3,15 +3,26 @@
 import { useState } from "react";
 import { Button, ConversionOption, FileInfoCard } from "../ui";
 
-export const FileDragged = () => {
+export interface FileDraggedProps {
+  fileName: string;
+  fileSize: string;
+  onRemove: () => void;
+  onConvert: () => void;
+  error?: string | null;
+}
+
+export const FileDragged = ({
+  fileName,
+  fileSize,
+  onRemove,
+  onConvert,
+  error,
+}: FileDraggedProps) => {
   const [selectedOption, setSelectedOption] = useState<string>("pdf");
 
-  return (
+  return !error ? (
     <div className="max-w-md mx-auto rounded-2xl shadow-lg p-6 space-y-4">
-      <FileInfoCard
-        fileName="Digital Marketing requirements.pptx"
-        fileSize="3.88 MB"
-      />
+      <FileInfoCard fileName={fileName} fileSize={fileSize} />
       <ConversionOption
         title="High Compression"
         description="Smallest file size, standard quality"
@@ -19,11 +30,17 @@ export const FileDragged = () => {
         onClick={() => setSelectedOption("pdf")}
       />
       <div className="flex space-x-3">
-        <Button variant="secondary" className="flex-1">
+        <Button onClick={onRemove} variant="secondary" className="flex-1">
           Cancel
         </Button>
-        <Button className="flex-1">Compress</Button>
+        <Button onClick={onConvert} className="flex-1">
+          Compress
+        </Button>
       </div>
+    </div>
+  ) : (
+    <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+      <p className="text-red-700 text-sm">{error}</p>
     </div>
   );
 };
