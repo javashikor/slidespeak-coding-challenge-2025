@@ -3,3 +3,6 @@ version: '3'
 services:
   unoserver:
     image: libreofficedocker/libreoffice-unoserver:3.19-9c28c22
+    container_name: unoserver
+    ports:
+      - "2004:2004"
