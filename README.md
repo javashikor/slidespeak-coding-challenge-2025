@@ -41,7 +41,7 @@ Before running the project, you need to set up environment files for the backend
 ### 1. Clone the Repository
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/javashikor/slidespeak-coding-challenge-2025.git
 ```
 
 ### 2. Build and start the services

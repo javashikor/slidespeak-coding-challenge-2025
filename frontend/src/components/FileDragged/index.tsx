@@ -24,8 +24,8 @@ export const FileDragged = ({
     <div className="max-w-md mx-auto rounded-2xl shadow-lg p-6 space-y-4">
       <FileInfoCard fileName={fileName} fileSize={fileSize} />
       <ConversionOption
-        title="High Compression"
-        description="Smallest file size, standard quality"
+        title="Convert to PDF"
+        description="Best quality, retains images and other assets."
         selected={selectedOption === "pdf"}
         onClick={() => setSelectedOption("pdf")}
       />
