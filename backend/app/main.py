@@ -70,12 +70,7 @@ async def convert_pptx_to_pdf(file: UploadFile = File(...)):
     output_path = f"tmp/{output_filename}"
     s3_key = f"converted-pdfs/{output_filename}"
 
-    print(f"Input path: {input_path}, Output path: {output_path}, S3 key: {s3_key}")
-
-    print(f"AWS Access Key: {AWS_ACCESS_KEY_ID}")
-    print(f"UNOSERVER URL: {UNOSERVER_URL}")
-    print(f"Frontend URL: {FRONTEND_URL}")
-    
+    # print(f"Input path: {input_path}, Output path: {output_path}, S3 key: {s3_key}")
 
     try:
         # Step 1: Save uploaded file to a temporary location
@@ -174,7 +169,6 @@ async def convert_pptx_to_pdf(file: UploadFile = File(...)):
             os.remove(input_path)
         if os.path.exists(output_path):
             os.remove(output_path)
-        
 
 
 @app.get("/status/{job_id}")

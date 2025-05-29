@@ -12,10 +12,10 @@ from app.utils.config import (
 
 async def upload_to_s3(file_path: str, object_name: str) -> str:
 
-    print(f"Uploading {file_path} to S3 bucket {AWS_S3_BUCKET} as {object_name}")
-    print(f"Using AWS region: {AWS_REGION}")
-    print(f"Using AWS access key ID: {AWS_ACCESS_KEY_ID}")
-    print(f"Using AWS secret access key: {AWS_SECRET_ACCESS_KEY}")
+    # print(f"Uploading {file_path} to S3 bucket {AWS_S3_BUCKET} as {object_name}")
+    # print(f"Using AWS region: {AWS_REGION}")
+    # print(f"Using AWS access key ID: {AWS_ACCESS_KEY_ID}")
+    # print(f"Using AWS secret access key: {AWS_SECRET_ACCESS_KEY}")
 
     session = aioboto3.Session()
 

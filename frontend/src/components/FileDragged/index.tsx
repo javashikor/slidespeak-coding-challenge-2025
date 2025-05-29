@@ -34,7 +34,7 @@ export const FileDragged = ({
           Cancel
         </Button>
         <Button onClick={onConvert} className="flex-1">
-          Compress
+          Convert
         </Button>
       </div>
     </div>
