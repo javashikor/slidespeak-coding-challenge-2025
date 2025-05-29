@@ -2,60 +2,117 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 interface JobStatus {
   status: string;
-  progress: number;
+  progress?: number;
   message: string;
-  stage: string;
-  download_url?: string;
+  s3_url?: string;
+  error?: string;
+  job_id?: string;
 }
 
 type ConversionState =
-  | "idle"
-  | "uploading"
-  | "converting"
-  | "success"
-  | "error";
+  | "pending"
+  | "started"
+  | "in_progress"
+  | "completed"
+  | "error"
+  | "unknown";
 
 interface ConversionResult {
   success: boolean;
   message: string;
   job_id: string;
+  status: string;
   download_url?: string;
 }
 
 export const useFileConverter = () => {
   const [file, setFile] = useState<File | null>(null);
   const [conversionState, setConversionState] =
-    useState<ConversionState>("idle");
+    useState<ConversionState>("unknown");
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Map backend status to frontend state
+  const mapStatusToState = (status: string): ConversionState => {
+    switch (status.toLowerCase()) {
+      case "pending":
+        return "pending";
+      case "started":
+        return "started";
+      case "in_progress":
+      case "progress": // Celery uses "PROGRESS"
+        return "in_progress";
+      case "completed":
+      case "success": // Celery uses "SUCCESS"
+        return "completed";
+      case "error":
+      case "failure": // Celery uses "FAILURE"
+        return "error";
+      default:
+        return "unknown";
+    }
+  };
 
   const pollJobStatus = useCallback(async (jobId: string) => {
     try {
       const response = await fetch(`http://localhost:8000/status/${jobId}`);
       if (response.ok) {
         const status: JobStatus = await response.json();
+
+        // Debug logging
+        console.log("Polling status:", status);
+
+        // Update job status
         setJobStatus(status);
 
-        if (status.status === "complete" || status.status === "error") {
+        // Map backend status to frontend state
+        const newState = mapStatusToState(status.status);
+        console.log("Mapped state:", newState);
+        setConversionState(newState);
+
+        // Handle completion or error - check for both "completed" and "SUCCESS" (Celery state)
+        const isCompleted =
+          status.status === "completed" || status.status === "SUCCESS";
+        const isError =
+          status.status === "error" || status.status === "FAILURE";
+
+        if (isCompleted || isError) {
+          console.log("Job finished:", {
+            isCompleted,
+            isError,
+            status: status.status,
+          });
+
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
             pollIntervalRef.current = null;
           }
 
-          setConversionState(
-            status.status === "complete" ? "success" : "error"
-          );
-
-          if (status.status === "error") {
-            setError(status.message);
+          if (isError) {
+            setError(status.error || status.message || "Conversion failed");
+            setConversionState("error");
+          } else if (isCompleted) {
+            setConversionState("completed");
           }
+        }
+      } else {
+        console.error("Failed to fetch job status");
+        setError("Failed to fetch job status");
+        setConversionState("error");
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
         }
       }
     } catch (err) {
-      console.error("Error polling job status:", err);
+      console.error("Failed to check conversion status:", err);
       setError("Failed to check conversion status");
       setConversionState("error");
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
     }
   }, []);
 
@@ -66,7 +123,7 @@ export const useFileConverter = () => {
         return;
       }
 
-      setConversionState("converting");
+      setConversionState("pending");
       setError(null);
       setJobStatus(null);
 
@@ -89,21 +146,24 @@ export const useFileConverter = () => {
 
         const result: ConversionResult = await response.json();
 
-        if (result.success) {
-          if (result.download_url) {
-            setJobStatus({
-              status: "complete",
-              progress: 100,
-              message: result.message,
-              stage: "complete",
-              download_url: result.download_url,
-            });
-            setConversionState("success");
-          } else if (result.job_id) {
-            pollIntervalRef.current = setInterval(() => {
-              pollJobStatus(result.job_id);
-            }, 1000);
-          }
+        if (result.success && result.job_id) {
+          // Set initial job status
+          setJobStatus({
+            status: result.status || "pending",
+            message: result.message,
+            job_id: result.job_id,
+          });
+
+          // Start polling every 2 seconds instead of 1
+          pollIntervalRef.current = setInterval(() => {
+            pollJobStatus(result.job_id);
+          }, 2000);
+
+          // Also poll once immediately
+          pollJobStatus(result.job_id);
+        } else {
+          setError(result.message || "Conversion failed");
+          setConversionState("error");
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
@@ -115,7 +175,7 @@ export const useFileConverter = () => {
 
   const resetConverter = useCallback(() => {
     setFile(null);
-    setConversionState("idle");
+    setConversionState("unknown");
     setJobStatus(null);
     setError(null);
     if (pollIntervalRef.current) {
@@ -128,7 +188,7 @@ export const useFileConverter = () => {
     setFile(selectedFile);
     setError(null);
     setJobStatus(null);
-    setConversionState("idle");
+    setConversionState("unknown");
   }, []);
 
   useEffect(() => {

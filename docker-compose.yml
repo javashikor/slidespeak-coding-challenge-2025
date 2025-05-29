@@ -1,30 +1,46 @@
-version: "3"
-
+version: "3.8"
 services:
-  unoserver:
-    image: libreofficedocker/libreoffice-unoserver:3.19-9c28c22
-    container_name: unoserver
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     ports:
-      - "2004:2004"
+      - "8000:8000"
+    env_file: .env
+    volumes:
+      - ./backend/tmp:/tmp
+    depends_on:
+      - redis
+      - unoserver
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: frontend
-    env_file: ./frontend/.env
     ports:
       - "3000:3000"
     depends_on:
       - backend
 
-  backend:
+  redis:
+    image: redis
+    ports:
+      - "6379:6379"
+
+  celery_worker:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: backend
-    env_file: ./backend/.env
-    ports:
-      - "8000:8000"
+    command: python -m celery -A celery_worker.celery_app worker --loglevel=info
+    env_file: .env
+    volumes:
+      - ./backend/tmp:/tmp
     depends_on:
+      - redis
       - unoserver
+      - backend
+
+  unoserver:
+    image: libreofficedocker/libreoffice-unoserver:3.19-9c28c22
+    ports:
+      - "2004:2004"

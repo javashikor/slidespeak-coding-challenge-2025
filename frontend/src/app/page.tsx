@@ -1,4 +1,3 @@
-// pages/Home.tsx (or wherever your main component is)
 "use client";
 
 import { ChooseFileStep } from "@/components/ChooseFileStep";
@@ -32,10 +31,12 @@ const Home = () => {
     <main className="w-full h-screen flex items-center justify-center">
       <div className="w-full max-w-[420px]">
         {/* Error State */}
-        {conversionState === "error" && error && (
+        {conversionState === "error" && (
           <div className="max-w-md mx-auto bg-gray-50 rounded-2xl shadow-lg p-6">
             <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-700 text-sm">{error}</p>
+              <p className="text-red-700 text-sm">
+                {error || "An error occurred during conversion"}
+              </p>
             </div>
             <button
               onClick={resetConverter}
@@ -46,26 +47,29 @@ const Home = () => {
           </div>
         )}
 
-        {/* Converting State */}
-        {conversionState === "converting" && file && (
-          <ConversionInProgress
-            fileName={file.name}
-            fileSize={formatFileSize(file.size)}
-            progress={jobStatus?.progress}
-            onCancel={resetConverter}
-          />
-        )}
+        {/* Converting States - pending, started, in_progress */}
+        {(conversionState === "pending" ||
+          conversionState === "started" ||
+          conversionState === "in_progress") &&
+          file && (
+            <ConversionInProgress
+              fileName={file.name}
+              fileSize={formatFileSize(file.size)}
+              progress={jobStatus?.progress}
+              onCancel={resetConverter}
+            />
+          )}
 
         {/* Success State */}
-        {conversionState === "success" && jobStatus?.download_url && (
+        {conversionState === "completed" && jobStatus && (
           <ConversionDone
-            downloadUrl={jobStatus.download_url}
+            downloadUrl={jobStatus.s3_url || jobStatus.s3_url || ""}
             onConvertAnother={resetConverter}
           />
         )}
 
-        {/* File Selected State */}
-        {file && conversionState === "idle" && (
+        {/* File Selected State - show when file is selected but not converting */}
+        {file && conversionState === "unknown" && !error && (
           <FileDragged
             fileName={file.name}
             fileSize={formatFileSize(file.size)}
@@ -75,12 +79,12 @@ const Home = () => {
           />
         )}
 
-        {/* Initial Upload State */}
-        {!file && conversionState === "idle" && (
+        {/* Initial Upload State - show when no file selected */}
+        {!file && conversionState === "unknown" && (
           <ChooseFileStep
             onFileSelect={selectFile}
             error={error}
-            disabled={conversionState !== "idle"}
+            disabled={false}
           />
         )}
       </div>

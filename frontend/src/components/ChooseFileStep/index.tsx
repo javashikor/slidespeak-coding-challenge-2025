@@ -14,11 +14,15 @@ export const ChooseFileStep = ({
   error = null,
   disabled = false,
 }: ChooseFileStepProps) => {
-  const { getRootProps, getInputProps } = useDropzone({
-    onDrop: (acceptedFiles) => {
+  const { getRootProps, getInputProps, isDragReject } = useDropzone({
+    onDrop: (acceptedFiles, rejectedFiles) => {
       if (acceptedFiles.length > 0 && !disabled) {
         onFileSelect(acceptedFiles[0]);
       }
+    },
+    accept: {
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+        [".pptx"],
     },
     multiple: false,
     disabled,
