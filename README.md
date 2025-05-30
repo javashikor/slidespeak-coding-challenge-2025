@@ -39,21 +39,56 @@ cd slidespeak-coding-challenge-2025
 ### 2. Create Environment File
 Create a `.env` file in the root directory with the required environment variables (see Prerequisites section above).
 
-### 3. Build and Start the Services
+### 3. Set Up Cleanup Script (Optional but Recommended)
+Make the Docker cleanup script executable:
 ```bash
-docker-compose up --build
+chmod +x cleanup.sh
 ```
 
-### 4. Access the Services:
+### 4. Build and Start the Services
+```bash
+docker compose up -d
+```
+
+### 5. Access the Services:
 - **Frontend**: http://localhost:3000 (Main application interface)
 - **Backend API**: http://localhost:8000 (API documentation available at `/docs`)
 - **Redis**: http://localhost:6379 (Database for task queue and results)
 - **UnoServer**: http://localhost:2004 (Document conversion service)
 
-### 5. To Stop the Services:
+### 6. To Stop the Services:
 ```bash
-docker-compose down
+docker compose down
 ```
+
+---
+
+## Development Workflow
+
+### Clean Rebuild (Recommended for Code Updates)
+When you make changes to your codebase and want to ensure a completely clean rebuild:
+
+```bash
+# Clean up all Docker resources
+./cleanup.sh
+
+# Rebuild and start services
+docker compose up -d
+```
+
+---
+
+## Docker Cleanup Script
+
+The included `cleanup.sh` script provides a comprehensive cleanup of all Docker resources related to this project:
+
+- **What it removes:**
+  - All containers (frontend, backend, and dependencies)
+  - All images for frontend and backend services
+  - All Docker volumes
+  - Build cache and dangling images
+  - Unused networks
+
 
 ---
 
