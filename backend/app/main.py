@@ -2,7 +2,7 @@ import os
 import uuid
 
 import aiofiles
-from app.models import ConversionJobStatus, ConversionJobMessage
+from app.models import ConversionJobMessage, ConversionJobStatus
 from app.tasks import convert_pptx_to_pdf_task
 from app.utils.redis import get_redis_client
 from celery.result import AsyncResult
@@ -62,17 +62,31 @@ async def convert_pptx_to_pdf(file: UploadFile = File(...)):
 
         return JSONResponse(
             {
-                "success": True,
+                "status": ConversionJobStatus.PENDING,
                 "message": "Conversion job queued successfully",
                 "job_id": task.id,
-                "status": ConversionJobStatus.PENDING,
             }
         )
     except HTTPException:
         # Re-raise HTTP exceptions
-        raise
+        return JSONResponse(
+            {
+                "status": ConversionJobStatus.ERROR,
+                "message": "Failed to process the file",
+                "job_id": job_id,
+            }
+        )
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # Handle unexpected errors
+        return JSONResponse(
+            {
+                "status": ConversionJobStatus.ERROR,
+                "message": f"An error occurred: {str(e)}",
+                "job_id": job_id,
+            },
+            status_code=500,
+        )
 
 
 @app.get("/status/{job_id}")
@@ -91,26 +105,30 @@ async def get_conversion_status(job_id: str):
         "PENDING": {
             "status": ConversionJobStatus.PENDING,
             "message": ConversionJobMessage.PENDING,
+            "job_id": job_id,
         },
         "PROGRESS": {
             "status": ConversionJobStatus.IN_PROGRESS,
             "message": ConversionJobMessage.IN_PROGRESS,
+            "job_id": job_id,
         },
         "SUCCESS": {
             "status": ConversionJobStatus.COMPLETED,
             "message": ConversionJobMessage.COMPLETED,
+            "job_id": job_id,
         },
         "FAILURE": {
             "status": ConversionJobStatus.ERROR,
             "message": ConversionJobMessage.ERROR,
+            "job_id": job_id,
         },
     }
 
     # Base response
     response_data = {
-        "job_id": job_id,
         "status": ConversionJobStatus.UNKNOWN,
         "message": ConversionJobMessage.UNKNOWN,
+        "job_id": job_id,
     }
 
     # Check for known states

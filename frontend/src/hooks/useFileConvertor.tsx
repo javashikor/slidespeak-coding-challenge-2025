@@ -2,11 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 interface JobStatus {
   status: string;
-  progress?: number;
   message: string;
+  job_id: string;
+  progress?: number;
   s3_url?: string;
   error?: string;
-  job_id?: string;
 }
 
 type ConversionState =
@@ -16,14 +16,6 @@ type ConversionState =
   | "completed"
   | "error"
   | "unknown";
-
-interface ConversionResult {
-  success: boolean;
-  message: string;
-  job_id: string;
-  status: string;
-  download_url?: string;
-}
 
 export const useFileConverter = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -50,11 +42,8 @@ export const useFileConverter = () => {
         // console.log("Mapped state:", newState);
         setConversionState(newState as ConversionState);
 
-        // Handle completion or error - check for both "completed" and "SUCCESS" (Celery state)
-        const isCompleted =
-          status.status === "completed" || status.status === "SUCCESS";
-        const isError =
-          status.status === "error" || status.status === "FAILURE";
+        const isCompleted = status.status === "completed";
+        const isError = status.status === "error";
 
         if (isCompleted || isError) {
           // console.log("Job finished:", {
@@ -123,9 +112,9 @@ export const useFileConverter = () => {
           throw new Error(errorData.detail || "Conversion failed");
         }
 
-        const result: ConversionResult = await response.json();
+        const result: JobStatus = await response.json();
 
-        if (result.success && result.job_id) {
+        if (result.job_id) {
           // Set initial job status
           setJobStatus({
             status: result.status || "pending",
