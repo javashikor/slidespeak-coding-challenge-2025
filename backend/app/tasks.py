@@ -1,12 +1,21 @@
 # app/tasks.py
 import os
-import traceback
 
-from app.utils.config import CELERY_BROKER_URL
 from app.utils.convert import convert_with_unoserver
 from app.utils.redis import get_redis_client
 from app.utils.s3 import upload_to_s3
 from celery_worker.celery_app import celery_app
+
+
+def validate_file_exists(file_path: str):
+    """
+    Validate that the input file exists.
+    Raises an exception if the file does not exist.
+    """
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"Input file does not exist: {file_path}")
+    if not os.path.isfile(file_path):
+        raise IsADirectoryError(f"Input path is not a file: {file_path}")
 
 
 @celery_app.task(
@@ -22,32 +31,14 @@ def convert_pptx_to_pdf_task(
     task_id = self.request.id
     redis_client = get_redis_client()
 
-    # Ensure input and output paths are absolute
-    input_path = os.path.abspath(input_path)
-    output_path = os.path.abspath(output_path)
-
     try:
         # Step 1: Validate input file
-        self.update_state(
-            state="STARTED",
-            meta={
-                "progress": 10,
-                "status": "Validating input file...",
-                "current_step": "validation",
-            },
-        )
+        self.update_state(state="STARTED")
 
         # validate_file_exists(input_path)
 
         # Step 2: Convert file
-        self.update_state(
-            state="PROGRESS",
-            meta={
-                "progress": 25,
-                "status": "Converting PPTX to PDF...",
-                "current_step": "conversion",
-            },
-        )
+        self.update_state(state="PROGRESS")
 
         success = convert_with_unoserver(input_path, output_path)
 
@@ -55,14 +46,7 @@ def convert_pptx_to_pdf_task(
             raise Exception("Conversion failed with unoserver")
 
         # Step 3: Upload to S3
-        self.update_state(
-            state="PROGRESS",
-            meta={
-                "progress": 75,
-                "status": "Uploading to cloud storage...",
-                "current_step": "upload",
-            },
-        )
+        self.update_state(state="PROGRESS")
 
         s3_url = upload_to_s3(output_path, s3_key)
 
@@ -70,14 +54,7 @@ def convert_pptx_to_pdf_task(
             raise Exception("Failed to upload file to S3")
 
         # Step 4: Complete
-        self.update_state(
-            state="SUCCESS",
-            meta={
-                "progress": 100,
-                "status": "Conversion completed successfully",
-                "current_step": "completed",
-            },
-        )
+        self.update_state(state="SUCCESS")
 
         redis_client.setex(
             task_id,
@@ -88,17 +65,7 @@ def convert_pptx_to_pdf_task(
     except Exception as e:
         error_msg = f"Unexpected error: {str(e)}"
 
-        self.update_state(
-            state="FAILURE",
-            meta={
-                "progress": 0,
-                "status": error_msg,
-                "error": str(e),
-                "error_type": "unexpected_error",
-                "exc_type": type(e).__name__,
-                "exc_message": traceback.format_exc().split("\n"),
-            },
-        )
+        self.update_state(state="FAILURE")
         raise
     finally:
         # Cleanup files

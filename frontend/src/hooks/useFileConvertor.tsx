@@ -33,43 +33,22 @@ export const useFileConverter = () => {
   const [error, setError] = useState<string | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Map backend status to frontend state
-  const mapStatusToState = (status: string): ConversionState => {
-    switch (status.toLowerCase()) {
-      case "pending":
-        return "pending";
-      case "started":
-        return "started";
-      case "in_progress":
-      case "progress": // Celery uses "PROGRESS"
-        return "in_progress";
-      case "completed":
-      case "success": // Celery uses "SUCCESS"
-        return "completed";
-      case "error":
-      case "failure": // Celery uses "FAILURE"
-        return "error";
-      default:
-        return "unknown";
-    }
-  };
-
   const pollJobStatus = useCallback(async (jobId: string) => {
     try {
       const response = await fetch(`http://localhost:8000/status/${jobId}`);
       if (response.ok) {
         const status: JobStatus = await response.json();
 
-        // Debug logging
-        console.log("Polling status:", status);
+        // // Debug logging
+        // console.log("Polling status:", status);
 
         // Update job status
         setJobStatus(status);
 
         // Map backend status to frontend state
-        const newState = mapStatusToState(status.status);
-        console.log("Mapped state:", newState);
-        setConversionState(newState);
+        const newState = status.status;
+        // console.log("Mapped state:", newState);
+        setConversionState(newState as ConversionState);
 
         // Handle completion or error - check for both "completed" and "SUCCESS" (Celery state)
         const isCompleted =
@@ -78,11 +57,11 @@ export const useFileConverter = () => {
           status.status === "error" || status.status === "FAILURE";
 
         if (isCompleted || isError) {
-          console.log("Job finished:", {
-            isCompleted,
-            isError,
-            status: status.status,
-          });
+          // console.log("Job finished:", {
+          //   isCompleted,
+          //   isError,
+          //   status: status.status,
+          // });
 
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
@@ -97,7 +76,7 @@ export const useFileConverter = () => {
           }
         }
       } else {
-        console.error("Failed to fetch job status");
+        // console.error("Failed to fetch job status");
         setError("Failed to fetch job status");
         setConversionState("error");
         if (pollIntervalRef.current) {
@@ -106,7 +85,7 @@ export const useFileConverter = () => {
         }
       }
     } catch (err) {
-      console.error("Failed to check conversion status:", err);
+      // console.error("Failed to check conversion status:", err);
       setError("Failed to check conversion status");
       setConversionState("error");
       if (pollIntervalRef.current) {

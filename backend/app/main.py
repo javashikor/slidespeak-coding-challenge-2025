@@ -1,9 +1,8 @@
-import json
 import os
 import uuid
 
 import aiofiles
-from app.models import ConversionJobStatus
+from app.models import ConversionJobStatus, ConversionJobMessage
 from app.tasks import convert_pptx_to_pdf_task
 from app.utils.redis import get_redis_client
 from celery.result import AsyncResult
@@ -54,10 +53,7 @@ async def convert_pptx_to_pdf(file: UploadFile = File(...)):
     output_path = os.path.join(TMP_DIR, output_filename)
     s3_key = f"converted-pdfs/{output_filename}"
 
-    # print(f"Input path: {input_path}, Output path: {output_path}, S3 key: {s3_key}")
-
     try:
-
         async with aiofiles.open(input_path, "wb") as file_buffer:
             while content := await file.read(8192):
                 await file_buffer.write(content)
@@ -90,52 +86,44 @@ async def get_conversion_status(job_id: str):
     if not task:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    if task.state == "PENDING":
-        return JSONResponse(
-            {
-                "job_id": job_id,
-                "status": ConversionJobStatus.PENDING,
-                "message": "Job is pending",
-            }
-        )
+    # State mapping
+    state_mappings = {
+        "PENDING": {
+            "status": ConversionJobStatus.PENDING,
+            "message": ConversionJobMessage.PENDING,
+        },
+        "PROGRESS": {
+            "status": ConversionJobStatus.IN_PROGRESS,
+            "message": ConversionJobMessage.IN_PROGRESS,
+        },
+        "SUCCESS": {
+            "status": ConversionJobStatus.COMPLETED,
+            "message": ConversionJobMessage.COMPLETED,
+        },
+        "FAILURE": {
+            "status": ConversionJobStatus.ERROR,
+            "message": ConversionJobMessage.ERROR,
+        },
+    }
 
-    elif task.state == "PROGRESS":
-        return JSONResponse(
-            {
-                "job_id": job_id,
-                "status": ConversionJobStatus.IN_PROGRESS,
-                "message": task.info.get("status", "Processing..."),
-                "progress": task.info.get("progress", 0),
-            }
-        )
+    # Base response
+    response_data = {
+        "job_id": job_id,
+        "status": ConversionJobStatus.UNKNOWN,
+        "message": ConversionJobMessage.UNKNOWN,
+    }
 
-    elif task.state == "SUCCESS":
+    # Check for known states
+    for state, mapping in state_mappings.items():
+        if task.state == state:
+            response_data.update(mapping)
 
-        redis_client = get_redis_client()
+            # Special handling for SUCCESS state
+            if state == "SUCCESS":
+                redis_client = get_redis_client()
+                s3_url = redis_client.get(job_id)
 
-        return JSONResponse(
-            {
-                "job_id": job_id,
-                "status": ConversionJobStatus.COMPLETED,
-                "message": "Conversion completed successfully",
-                "s3_url": redis_client.get(job_id),
-            }
-        )
+                response_data["s3_url"] = s3_url
+            break
 
-    elif task.state == "FAILURE":
-        return JSONResponse(
-            {
-                "job_id": job_id,
-                "status": ConversionJobStatus.ERROR,
-                "message": str(task.info),
-            }
-        )
-
-    else:
-        return JSONResponse(
-            {
-                "job_id": job_id,
-                "status": ConversionJobStatus.UNKNOWN,
-                "message": f"Unknown state: {task.state}",
-            }
-        )
+    return JSONResponse(response_data)

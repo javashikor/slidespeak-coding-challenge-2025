@@ -1,9 +1,4 @@
-import os
 from enum import StrEnum
-from typing import Optional
-
-from pydantic import BaseModel
-from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # class Settings(BaseSettings):
 #     AWS_ACCESS_KEY_ID: str
@@ -20,9 +15,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class ConversionJobMessage(StrEnum):
     PENDING = "Job is pending"
     STARTED = "Job has started"
-    IN_PROGRESS = "Job is in progress"
-    COMPLETED = "Job has completed successfully"
-    ERROR = "Job has failed with an error"
+    IN_PROGRESS = "Processing..."
+    COMPLETED = "Conversion completed successfully"
+    ERROR = "Conversion failed"
     UNKNOWN = "Unknown job status"
 
 

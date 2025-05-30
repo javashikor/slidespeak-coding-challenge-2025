@@ -61,9 +61,9 @@ const Home = () => {
           )}
 
         {/* Success State */}
-        {conversionState === "completed" && jobStatus && (
+        {conversionState === "completed" && jobStatus?.s3_url && (
           <ConversionDone
-            downloadUrl={jobStatus.s3_url || jobStatus.s3_url || ""}
+            downloadUrl={jobStatus.s3_url}
             onConvertAnother={resetConverter}
           />
         )}
